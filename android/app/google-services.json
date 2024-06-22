@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "847644249396",
+    "project_id": "review-hub-master-5962d",
+    "storage_bucket": "review-hub-master-5962d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:847644249396:android:7dd11b8ccece5a481de961",
+        "android_client_info": {
+          "package_name": "com.example.review_hub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0XpGnXvCWZpMHlAABAZ3dK9IDlKdBkQc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:847644249396:android:bd75ff632fa2c23d1de961",
+        "android_client_info": {
+          "package_name": "com.example.review_hub_admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0XpGnXvCWZpMHlAABAZ3dK9IDlKdBkQc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
