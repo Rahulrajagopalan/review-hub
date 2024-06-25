@@ -28,6 +28,13 @@ class _MovieViewState extends State<MovieView> {
   var id;
   double _userRating = 0.0;
   var comment = TextEditingController();
+  bool isLiked = false;
+  void likeComment() {
+    setState(() {
+      isLiked = !isLiked;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,8 +53,7 @@ class _MovieViewState extends State<MovieView> {
               width: double.infinity,
             ),
             SizedBox(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
+              child: SingleChildScrollView(
                 child: Column(
                   children: [
                     SizedBox(
@@ -108,11 +114,12 @@ class _MovieViewState extends State<MovieView> {
                           FutureBuilder(
                               future: calculateAverageRating(widget.name),
                               builder: (context, snapshot) {
-                                 if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const CircularProgressIndicator();
-                      }
-                      double rating = snapshot.data ?? 0.0;
-                     
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const CircularProgressIndicator();
+                                }
+                                double rating = snapshot.data ?? 0.0;
+
                                 return Column(
                                   children: [
                                     AppText(
@@ -146,49 +153,95 @@ class _MovieViewState extends State<MovieView> {
                         ],
                       ),
                     ),
+                    Container(
+                      height: 70,
+                      color: grey,
+                      child: StreamBuilder(
+                          stream: reviewStream,
+                          builder: (context, snap) {
+                            if (snap.hasError) {
+                              return Text('Error: ${snap.error}');
+                            }
+                            if (!snap.hasData) {
+                              return const SizedBox(
+                                  width: double.infinity,
+                                  child:
+                                      Center(child: Text("No reviews yet.")));
+                            }
+                            return ListView.builder(
+                                padding: const EdgeInsets.all(8),
+                                itemCount: snap.data.docs.length,
+                                itemBuilder: (BuildContext context, int index) {
+                                  DocumentSnapshot ds = snap.data.docs[index];
+                                  return ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundImage: AssetImage(
+                                            'assets/images/profile.png'),
+                                      ),
+                                      title: AppText(
+                                          text: ds['user'],
+                                          weight: FontWeight.w600,
+                                          size: 18,
+                                          textcolor: white),
+                                      subtitle: AppText(
+                                          text: ds['review'],
+                                          weight: FontWeight.w400,
+                                          size: 15,
+                                          textcolor: white),
+                                      trailing: SizedBox(
+                                        width:
+                                            MediaQuery.of(context).size.width /
+                                                3,
+                                        child: Row(
+                                          children: [
+                                            IconButton(
+                                                onPressed: likeComment,
+                                                icon: isLiked
+                                                    ? Icon(
+                                                        Icons.favorite,
+                                                        color: red,
+                                                      )
+                                                    : Icon(
+                                                        CupertinoIcons.heart,
+                                                        color: white,
+                                                      )),
+                                            IconButton(
+                                                onPressed: () async {
+                                                  SharedPreferences spref =
+                                                      await SharedPreferences
+                                                          .getInstance();
+                                                  var name =
+                                                      spref.getString('name');
+                                                  DateTime now = DateTime.now();
+                                                  DateFormat formatter =
+                                                      DateFormat('dd-MM-yyyy');
+                                                  String formattedDate =
+                                                      formatter.format(now);
+
+                                                  await FirebaseFirestore
+                                                      .instance
+                                                      .collection("report")
+                                                      .add({
+                                                    'user': name,
+                                                    'review': "Report ${ds['user']}'s comment",
+                                                    'item': widget.name,
+                                                    'date': formattedDate,
+                                                    'rating': 0.0
+                                                  });
+                                                },
+                                                icon: Icon(
+                                                  Icons.warning,
+                                                  color: Colors.red,
+                                                ))
+                                          ],
+                                        ),
+                                      ));
+                                });
+                          }),
+                    ),
                   ],
                 ),
               ),
-            ),
-            Container(
-              height: 70,
-              color: grey,
-              child: FutureBuilder(
-                  future: fetchLatestReview(),
-                  builder: (context, snap) {
-                    if (snap.connectionState == ConnectionState.waiting) {
-                      return CircularProgressIndicator();
-                    }
-                    if (snap.hasError) {
-                      return Text('Error: ${snap.error}');
-                    }
-                    if (!snap.hasData) {
-                      return Container(
-                          width: double.infinity,
-                          child: Center(child: Text("No reviews yet.")));
-                    }
-                    var data = snap.data!;
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage:
-                            AssetImage('assets/images/profile.png'),
-                      ),
-                      title: AppText(
-                          text: 'user : ${snap.data!['user']}',
-                          weight: FontWeight.w400,
-                          size: 15,
-                          textcolor: white),
-                      subtitle: AppText(
-                          text: snap.data!['review'],
-                          weight: FontWeight.w400,
-                          size: 15,
-                          textcolor: white),
-                      trailing: Icon(
-                        CupertinoIcons.heart,
-                        color: white,
-                      ),
-                    );
-                  }),
             ),
             Padding(
               padding: const EdgeInsets.all(28.0),
@@ -315,30 +368,48 @@ class _MovieViewState extends State<MovieView> {
     );
   }
 
-  Future<QueryDocumentSnapshot<Map<String, dynamic>>?>
-      fetchLatestReview() async {
-    try {
-      // Fetch the latest review based on the timestamp
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('reviews')
-          .where('item', isEqualTo: widget.name)
-          .limit(1)
-          .get();
-
-      // Check if we got any results
-      if (querySnapshot.docs.isNotEmpty) {
-        print('-----------------------');
-        return querySnapshot.docs.first;
-      } else {
-        // No reviews found
-        return null;
-      }
-    } catch (e) {
-      // Handle errors in fetching data
-      print('Error fetching latest review data: $e');
-      return null;
-    }
+  // **************
+  Future<Stream<QuerySnapshot>> getReview() async {
+    return await FirebaseFirestore.instance
+        .collection("reviews")
+        .where("item", isEqualTo: widget.name)
+        .snapshots();
   }
+
+  Stream? reviewStream;
+
+  getOnTheLoad() async {
+    reviewStream = await getReview();
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    getOnTheLoad();
+    super.initState();
+  }
+  // **************
+
+  // Future<QueryDocumentSnapshot<Map<String, dynamic>>?> fetchReview() async {
+  //   try {
+  //     // Fetch the latest review based on the timestamp
+  //     final querySnapshot =
+  //         await FirebaseFirestore.instance.collection('reviews').get();
+
+  //     // Check if we got any results
+  //     if (querySnapshot.docs.isNotEmpty) {
+  //       print('-----------------------');
+  //       return querySnapshot.docs.first;
+  //     } else {
+  //       // No reviews found
+  //       return null;
+  //     }
+  //   } catch (e) {
+  //     // Handle errors in fetching data
+  //     print('Error fetching latest review data: $e');
+  //     return null;
+  //   }
+  // }
 
   Future<double> calculateAverageRating(String itemName) async {
     try {
