@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:review_hub/CustomWidgets/customText.dart';
 import 'package:review_hub/CustomWidgets/customTextField.dart';
@@ -25,6 +27,36 @@ class MovieView extends StatefulWidget {
 }
 
 class _MovieViewState extends State<MovieView> {
+  final ImagePicker _picker = ImagePicker();
+  String? _imageUrl;
+
+  Future<void> _pickImage() async {
+    try {
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        var imageFile =
+            await pickedFile.readAsBytes(); // Adjusted for web compatibility
+        String fileName = 'images/${DateTime.now().millisecondsSinceEpoch}.jpg';
+        Reference storageRef = FirebaseStorage.instance.ref().child(fileName);
+        UploadTask uploadTask =
+            storageRef.putData(imageFile); // Adjusted for web compatibility
+        TaskSnapshot snapshot = await uploadTask;
+        String imageUrl = await snapshot.ref.getDownloadURL();
+
+        setState(() {
+          _imageUrl = imageUrl; // Use this URL in Image.network
+          print('Image uploaded successfully: $_imageUrl');
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: Colors.red,
+        content: Text('We failed to pick image: $e'),
+      ));
+      print('Failed to pick or upload image: $e');
+    }
+  }
+
   var id;
   double _userRating = 0.0;
   var comment = TextEditingController();
@@ -44,13 +76,9 @@ class _MovieViewState extends State<MovieView> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            Container(
-              height: 150,
-              child: Image.network(
-                widget.image,
-                fit: BoxFit.fill,
-              ),
-              width: double.infinity,
+            Image.network(
+              widget.image,
+              fit: BoxFit.fill,
             ),
             SizedBox(
               child: SingleChildScrollView(
@@ -153,9 +181,8 @@ class _MovieViewState extends State<MovieView> {
                         ],
                       ),
                     ),
-                    Container(
-                      height: 70,
-                      color: grey,
+                    SizedBox(
+                      height: 150,
                       child: StreamBuilder(
                           stream: reviewStream,
                           builder: (context, snap) {
@@ -169,73 +196,86 @@ class _MovieViewState extends State<MovieView> {
                                       Center(child: Text("No reviews yet.")));
                             }
                             return ListView.builder(
-                                padding: const EdgeInsets.all(8),
+                                padding: const EdgeInsets.all(10),
                                 itemCount: snap.data.docs.length,
                                 itemBuilder: (BuildContext context, int index) {
                                   DocumentSnapshot ds = snap.data.docs[index];
-                                  return ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundImage: AssetImage(
-                                            'assets/images/profile.png'),
-                                      ),
-                                      title: AppText(
-                                          text: ds['user'],
-                                          weight: FontWeight.w600,
-                                          size: 18,
-                                          textcolor: white),
-                                      subtitle: AppText(
-                                          text: ds['review'],
-                                          weight: FontWeight.w400,
-                                          size: 15,
-                                          textcolor: white),
-                                      trailing: SizedBox(
-                                        width:
-                                            MediaQuery.of(context).size.width /
-                                                3,
-                                        child: Row(
-                                          children: [
-                                            IconButton(
-                                                onPressed: likeComment,
-                                                icon: isLiked
-                                                    ? Icon(
-                                                        Icons.favorite,
-                                                        color: red,
-                                                      )
-                                                    : Icon(
-                                                        CupertinoIcons.heart,
-                                                        color: white,
-                                                      )),
-                                            IconButton(
-                                                onPressed: () async {
-                                                  SharedPreferences spref =
-                                                      await SharedPreferences
-                                                          .getInstance();
-                                                  var name =
-                                                      spref.getString('name');
-                                                  DateTime now = DateTime.now();
-                                                  DateFormat formatter =
-                                                      DateFormat('dd-MM-yyyy');
-                                                  String formattedDate =
-                                                      formatter.format(now);
-
-                                                  await FirebaseFirestore
-                                                      .instance
-                                                      .collection("report")
-                                                      .add({
-                                                    'user': name,
-                                                    'review': "Report ${ds['user']}'s comment",
-                                                    'item': widget.name,
-                                                    'date': formattedDate,
-                                                    'rating': 0.0
-                                                  });
-                                                },
-                                                icon: Icon(
-                                                  Icons.warning,
-                                                  color: Colors.red,
-                                                ))
-                                          ],
-                                        ),
-                                      ));
+                                  return Column(
+                                    children: [
+                                      ListTile(
+                                          leading: CircleAvatar(
+                                            backgroundImage: AssetImage(
+                                                'assets/images/profile.png'),
+                                          ),
+                                          title: AppText(
+                                              text: ds['user'],
+                                              weight: FontWeight.w600,
+                                              size: 18,
+                                              textcolor: customBalck),
+                                          subtitle: AppText(
+                                              text: ds['review'],
+                                              weight: FontWeight.w400,
+                                              size: 15,
+                                              textcolor: customBalck),
+                                          trailing: SizedBox(
+                                            width:
+                                                MediaQuery.of(context).size.width /
+                                                    3,
+                                            child: Row(
+                                              children: [
+                                                IconButton(
+                                                    onPressed: likeComment,
+                                                    icon: isLiked
+                                                        ? Icon(
+                                                            Icons.favorite,
+                                                            color: red,
+                                                          )
+                                                        : Icon(
+                                                            CupertinoIcons.heart,
+                                                            color: customBalck,
+                                                          )),
+                                                IconButton(
+                                                    onPressed: () async {
+                                                      SharedPreferences spref =
+                                                          await SharedPreferences
+                                                              .getInstance();
+                                                      var name =
+                                                          spref.getString('name');
+                                                      DateTime now = DateTime.now();
+                                                      DateFormat formatter =
+                                                          DateFormat('dd-MM-yyyy');
+                                                      String formattedDate =
+                                                          formatter.format(now);
+                                      
+                                                      await FirebaseFirestore
+                                                          .instance
+                                                          .collection("report")
+                                                          .add({
+                                                        'user': name,
+                                                        'review':
+                                                            "Report ${ds['user']}'s comment",
+                                                        'item': widget.name,
+                                                        'date': formattedDate,
+                                                        'rating': 0.0
+                                                      });
+                                                    },
+                                                    icon: Icon(
+                                                      Icons.warning,
+                                                      color: Colors.red,
+                                                    ))
+                                              ],
+                                            ),
+                                          )),
+                                          Container(
+                                            width: 200,
+                                            height: 100,
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(10),
+                                              image: DecorationImage(image: NetworkImage(ds['image']))
+                                            ),
+                                          )
+                                    ],
+                                  );
                                 });
                           }),
                     ),
@@ -253,7 +293,7 @@ class _MovieViewState extends State<MovieView> {
                   ),
                   SizedBox(width: 10),
                   SizedBox(
-                    width: 200,
+                    width: MediaQuery.of(context).size.width / 2.5,
                     child: TextFormField(
                       controller: comment,
                       validator: (value) {
@@ -285,6 +325,10 @@ class _MovieViewState extends State<MovieView> {
                     ),
                   ),
                   IconButton(
+                      onPressed: _pickImage, 
+                      icon: Icon(Icons.add_a_photo_rounded)
+                      ),
+                  IconButton(
                     icon: Icon(Icons.send),
                     onPressed: () async {
                       SharedPreferences spref =
@@ -299,6 +343,7 @@ class _MovieViewState extends State<MovieView> {
                           .add({
                         'user': name,
                         'review': comment.text,
+                        'image': _imageUrl,
                         'item': widget.name,
                         'date': formattedDate,
                         'rating': 0.0

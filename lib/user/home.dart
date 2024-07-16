@@ -6,6 +6,7 @@ import 'package:review_hub/constants/colors.dart';
 import 'package:review_hub/user/babytoys.dart';
 import 'package:review_hub/user/channel.dart';
 import 'package:review_hub/user/clothes.dart';
+import 'package:review_hub/user/makeUp.dart';
 import 'package:review_hub/user/movies.dart';
 import 'package:review_hub/user/restaurent.dart';
 import 'package:review_hub/user/resturentview.dart';
@@ -54,7 +55,7 @@ class _HomeState extends State<Home> {
             _buildCategory("Service", Services()),
             _buildCategory("Channel", Channel()),
             _buildCategory("Clothes", Clothes()),
-            _buildCategory("MakeUp", Channel()),
+            _buildCategory("MakeUp", MakeUp()),
           ],
         ),
       ),
@@ -140,7 +141,7 @@ class _HomeState extends State<Home> {
                 : _fetchSearchResults(search.text),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return CircularProgressIndicator();
+                  return Center(child: CircularProgressIndicator());
                 } else if (snapshot.hasError) {
                   return Text('Error: ${snapshot.error}');
                 } else {

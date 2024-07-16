@@ -1,35 +1,34 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:review_hub/constants/colors.dart';
 import 'package:review_hub/user/movieview.dart';
 
-class Clothes extends StatefulWidget {
-  Clothes({Key? key}) : super(key: key);
+class MakeUp extends StatefulWidget {
+  const MakeUp({super.key});
 
   @override
-  _MoviesState createState() => _MoviesState();
+  State<MakeUp> createState() => _MakeUpState();
 }
 
-class _MoviesState extends State<Clothes> {
+class _MakeUpState extends State<MakeUp> {
   final TextEditingController search = TextEditingController();
-  late Stream<QuerySnapshot> _clothesStream;
+  late Stream<QuerySnapshot> makeUpStream;
 
   @override
   void initState() {
     super.initState();
     // Initialize the stream to display all movies initially
-    _clothesStream = FirebaseFirestore.instance
+    makeUpStream = FirebaseFirestore.instance
         .collection('items')
-        .where('category', isEqualTo: 'Clothes')
+        .where('category', isEqualTo: 'MakeUp')
         .snapshots();
   }
 
   void _onSearchChanged(String query) {
     if (query.isNotEmpty) {
       setState(() {
-        _clothesStream = FirebaseFirestore.instance
+        makeUpStream = FirebaseFirestore.instance
             .collection('items')
             // .where('category', isEqualTo: 'Movie')
             .where('name', isGreaterThanOrEqualTo: query)
@@ -39,21 +38,20 @@ class _MoviesState extends State<Clothes> {
     } else {
       // Reset to initial stream if search query is cleared
       setState(() {
-        _clothesStream = FirebaseFirestore.instance
+        makeUpStream = FirebaseFirestore.instance
             .collection('items')
-            .where('category', isEqualTo: 'Clothes')
+            .where('category', isEqualTo: 'MakeUp')
             .snapshots();
       });
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         iconTheme: IconThemeData(color: white),
         backgroundColor: maincolor,
-        title: const Text('Clothes', style: TextStyle(color: Colors.white),),
+        title: const Text('MakeUp', style: TextStyle(color: Colors.white),),
       ),
       body: Center(
         child: Padding(
@@ -66,7 +64,7 @@ class _MoviesState extends State<Clothes> {
                   controller: search,
                   onChanged: _onSearchChanged,
                   decoration: InputDecoration(
-                    hintText: 'Search Clothes',
+                    hintText: 'Search MakeUp',
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -79,7 +77,7 @@ class _MoviesState extends State<Clothes> {
               ),
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
-                  stream: _clothesStream,
+                  stream: makeUpStream,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Center(child: SizedBox(
@@ -113,7 +111,6 @@ class _MoviesState extends State<Clothes> {
       ),
     );
   }
-
   Widget _buildMovieItem(Map<String, dynamic> movieData) {
     return Container(
       decoration: BoxDecoration(
